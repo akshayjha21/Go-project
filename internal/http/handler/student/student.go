@@ -8,8 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	response "github.com/akshayjha21/Student-Api/internal/http/handler/utils"
-	"github.com/akshayjha21/Student-Api/internal/http/types"
+	response "github.com/akshayjha21/Student-Api/internal/utils"
+	"github.com/akshayjha21/Student-Api/internal/types"
 	"github.com/go-playground/validator/v10"
 )
 
