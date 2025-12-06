@@ -1,0 +1,44 @@
+package student
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+
+	response "github.com/akshayjha21/Student-Api/internal/http/handler/utils"
+	"github.com/akshayjha21/Student-Api/internal/http/types"
+	"github.com/go-playground/validator/v10"
+)
+
+func New() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var student types.Student
+
+		//so we are reading the response and decoding it
+
+		//->it might also throw an error
+		slog.Info("Creating a student")
+		err := json.NewDecoder(r.Body).Decode(&student)
+
+		if errors.Is(err, io.EOF) {
+			//now we will return a json response
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("empty body")))
+			return
+		}
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
+		//REQUEST VALIDATOR
+		if err := validator.New().Struct((student)); err != nil {
+			validateErrs := err.(validator.ValidationErrors) //we are type casting it to the given argument type present in the error func in response.go i.e validator.ValidationErrors,if not then it will throw an error
+
+			response.WriteJson(w, http.StatusBadRequest, response.ValidatorError(validateErrs))
+			return
+		}
+		response.WriteJson(w, http.StatusCreated, map[string]string{"Succcess": "Ok"})
+	}
+}
