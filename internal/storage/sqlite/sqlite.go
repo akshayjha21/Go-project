@@ -151,11 +151,11 @@ func (s *Sqlite) UpdateById(id int64, data types.Student) (types.Student, error)
 	}
 	defer stmt.Close()
 
-	result, err := stmt.Exec(data.Name, data.Email, data.Age,id)
+	result, err := stmt.Exec(data.Name, data.Email, data.Age, id)
 	if err != nil {
 		return types.Student{}, fmt.Errorf("update error: %w", err)
 	}
-rowsAffected, err := result.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return types.Student{}, err
 	}
@@ -166,4 +166,24 @@ rowsAffected, err := result.RowsAffected()
 
 	// return updated student
 	return s.GetStudentById(id)
+}
+
+func (s *Sqlite) DeleteByID(id int64) error {
+	stmt, err := s.Db.Prepare(`
+	DELETE FROM students WHERE id = ?
+	`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	result, err := stmt.Exec(id)
+	if err != nil {
+		return fmt.Errorf("delete failed: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("no data was found with the id %d", id)
+	}
+	return nil
 }
