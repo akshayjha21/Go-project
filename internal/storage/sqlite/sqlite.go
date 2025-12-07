@@ -38,6 +38,7 @@ import (
 	"fmt"
 
 	config "github.com/akshayjha21/Student-Api/internal/config"
+	// "github.com/akshayjha21/Student-Api/internal/http/handler/student"
 	"github.com/akshayjha21/Student-Api/internal/types"
 
 	// "golang.org/x/tools/go/analysis/passes/defers"
@@ -186,4 +187,33 @@ func (s *Sqlite) DeleteByID(id int64) error {
 		return fmt.Errorf("no data was found with the id %d", id)
 	}
 	return nil
+}
+
+func(s *Sqlite) UpdateField(id int64,data types.StudentPatch )(types.Student,error)  {
+	stmt,err:=s.Db.Prepare(`
+		UPDATE students
+		SET name=?,email=?,age=?
+		WHERE id=? 
+	`)
+	if err != nil {
+		return types.Student{}, err
+	}
+	student,err:=s.GetStudentById(id)
+	if err != nil {
+		return types.Student{}, fmt.Errorf("no student found with %d",id)
+	}
+	if data.Name!=nil{
+		student.Name=*data.Name
+	}
+	if data.Email!=nil{
+		student.Email=*data.Email
+	}
+	if data.Age!=nil{
+		student.Age=*data.Age
+	}
+	_,err=stmt.Exec(student.Name,student.Email,student.Age,id)
+	if err != nil {
+		return types.Student{},fmt.Errorf("error updating the field")
+	}
+	return student,nil
 }

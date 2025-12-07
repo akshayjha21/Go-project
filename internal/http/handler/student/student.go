@@ -156,3 +156,45 @@ func DeleteByID(storage storage.Storage) http.HandlerFunc {
 		})
 	}
 }
+func UpdateField(storage storage.Storage) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+
+        id := r.PathValue("id")
+        slog.Info("Updating student fields", slog.String("id", id))
+
+        intid, err := strconv.ParseInt(id, 10, 64)
+        if err != nil {
+            response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+            return
+        }
+
+        var student types.StudentPatch
+		
+        err = json.NewDecoder(r.Body).Decode(&student)
+        if err == io.EOF {
+            response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("empty body")))
+            return
+        }
+        if err != nil {
+            response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+            return
+        }
+
+        // 🚫 DO NOT validate here — PATCH fields can be nil
+        // If you want validation, apply it only on non-nil fields
+
+        updated, err := storage.UpdateField(intid, student)
+		// slog.Info("updated field",slog.String(updated))
+        if err != nil {
+            if strings.Contains(err.Error(), "no student found") {
+                response.WriteJson(w, http.StatusNotFound, response.GeneralError(err))
+                return
+            }
+
+            response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+            return
+        }
+
+        response.WriteJson(w, http.StatusOK, updated)
+    }
+}

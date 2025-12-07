@@ -28,11 +28,14 @@ func main() {
 	slog.Info("storage intializer ", slog.String("env", cfg.Env), slog.String("version", "1.0.0"))
 	//TODO - setup route
 	router := http.NewServeMux()
+	//Basic APi
 	router.HandleFunc("POST /api/students", student.New(storage))
 	router.HandleFunc("GET /api/students/{id}", student.GetById(storage))
 	router.HandleFunc("GET /api/students", student.GetList(storage))
 	router.HandleFunc("PUT /api/students/{id}", student.UpdateById(storage))
 	router.HandleFunc("DELETE /api/students/{id}", student.DeleteByID(storage))
+	//AdvanceApi
+	router.HandleFunc("PATCH /api/students/{id}",student.UpdateField(storage))
 	// router.HandleFunc("GET /api/students",student.GetStudents(storage))
 	// router.HandleFunc("DELETE /api/students/{id}",student.DeleteById(storage))
 	//TODO - setup server

@@ -8,4 +8,5 @@ type Storage interface {
 	GetStudents()([]types.Student,error)
 	UpdateById(id int64, data types.Student) (types.Student, error)
 	DeleteByID(id int64)(error)
+	UpdateField(id int64,data types.StudentPatch)(types.Student,error)
 }
