@@ -10,20 +10,25 @@ import (
 	"syscall"
 	"time"
 
-	Config "github.com/akshayjha21/Student-Api/internal/config"
+	config "github.com/akshayjha21/Student-Api/internal/config"
 	"github.com/akshayjha21/Student-Api/internal/http/handler/student"
+	"github.com/akshayjha21/Student-Api/internal/storage/sqlite"
 )
 
 func main() {
 	//TODO - load config
 
-	cfg := Config.MustLoad()
+	cfg := config.MustLoad()
 
 	//TODO - database setup
-
+	storage, err := sqlite.New(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	slog.Info("storage intializer ", slog.String("env", cfg.Env), slog.String("version", "1.0.0"))
 	//TODO - setup route
 	router := http.NewServeMux()
-	router.HandleFunc("POST /api/students",student.New())
+	router.HandleFunc("POST /api/students", student.New(storage))
 	//TODO - setup server
 	server := http.Server{
 		Addr:    cfg.Addr,
@@ -84,7 +89,7 @@ func main() {
 	//    - It will stop taking new requests
 	//    - It will finish ongoing requests
 	//    - Uses the timeout context above
-	err := server.Shutdown(ctx)
+	err = server.Shutdown(ctx)
 	if err != nil {
 		slog.Error("Failed to shutdown the server", slog.String("error", err.Error()))
 	}
