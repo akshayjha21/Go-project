@@ -78,11 +78,50 @@ func GetById(storage storage.Storage) http.HandlerFunc {
 func GetList(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slog.Info("getting all students")
-		students,err:=storage.GetStudents()
+		students, err := storage.GetStudents()
 		if err != nil {
-			response.WriteJson(w,http.StatusInternalServerError,err)
-			return 
+			response.WriteJson(w, http.StatusInternalServerError, err)
+			return
 		}
-		response.WriteJson(w,http.StatusOK,students)
+		response.WriteJson(w, http.StatusOK, students)
+	}
+}
+func UpdateById(storage storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		slog.Info("Updating a student with ", slog.String("id", id))
+
+		intid, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
+		//extracting the student from the json body
+		var student types.Student
+
+		// decode JSON
+		err = json.NewDecoder(r.Body).Decode(&student)
+		if err == io.EOF {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("empty body")))
+			return
+		}
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
+
+		// validate request
+		if err := validator.New().Struct(student); err != nil {
+			validateErrs := err.(validator.ValidationErrors)
+			response.WriteJson(w, http.StatusBadRequest, response.ValidatorError(validateErrs))
+			return
+		}
+
+		updated, err := storage.UpdateById(intid, student)
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
+		response.WriteJson(w, http.StatusOK, updated)
 	}
 }

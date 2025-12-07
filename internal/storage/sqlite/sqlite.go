@@ -39,6 +39,7 @@ import (
 
 	config "github.com/akshayjha21/Student-Api/internal/config"
 	"github.com/akshayjha21/Student-Api/internal/types"
+
 	// "golang.org/x/tools/go/analysis/passes/defers"
 	_ "modernc.org/sqlite"
 )
@@ -113,13 +114,13 @@ func (s *Sqlite) GetStudentById(id int64) (types.Student, error) {
 	return student, nil
 }
 
-func (s*Sqlite)GetStudents()([]types.Student,error){
-	stmt,err:=s.Db.Prepare("SELECT id,name,email,age FROM students")
+func (s *Sqlite) GetStudents() ([]types.Student, error) {
+	stmt, err := s.Db.Prepare("SELECT id,name,email,age FROM students")
 	if err != nil {
 		return nil, err
 	}
 	defer stmt.Close()
-	rows,err:=stmt.Query()
+	rows, err := stmt.Query()
 
 	if err != nil {
 		return nil, err
@@ -128,13 +129,41 @@ func (s*Sqlite)GetStudents()([]types.Student,error){
 
 	var students []types.Student
 
-	for rows.Next(){
+	for rows.Next() {
 		var student types.Student
-		err:=rows.Scan(&student.Id,&student.Name,&student.Email,&student.Age)
+		err := rows.Scan(&student.Id, &student.Name, &student.Email, &student.Age)
 		if err != nil {
 			return nil, err
 		}
-		students=append(students, student)
+		students = append(students, student)
 	}
-	return students,nil
+	return students, nil
+}
+
+func (s *Sqlite) UpdateById(id int64, data types.Student) (types.Student, error) {
+	stmt, err := s.Db.Prepare(`
+		UPDATE students
+		SET name=?,email=?,age=?
+		WHERE id=? 
+	`)
+	if err != nil {
+		return types.Student{}, err
+	}
+	defer stmt.Close()
+
+	result, err := stmt.Exec(data.Name, data.Email, data.Age,id)
+	if err != nil {
+		return types.Student{}, fmt.Errorf("update error: %w", err)
+	}
+rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return types.Student{}, err
+	}
+
+	if rowsAffected == 0 {
+		return types.Student{}, fmt.Errorf("no student found with id %d", id)
+	}
+
+	// return updated student
+	return s.GetStudentById(id)
 }
