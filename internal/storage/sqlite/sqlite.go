@@ -36,8 +36,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
+	"log/slog"
 	config "github.com/akshayjha21/Student-Api/internal/config"
+	"github.com/akshayjha21/Student-Api/internal/utils/pagination"
+
 	// "github.com/akshayjha21/Student-Api/internal/http/handler/student"
 	"github.com/akshayjha21/Student-Api/internal/types"
 
@@ -114,31 +116,43 @@ func (s *Sqlite) GetStudentById(id int64) (types.Student, error) {
 
 	return student, nil
 }
+func (s *Sqlite) GetStudents(p *pagination.Paginate) ([]types.Student, error) {
+    limit, offset := p.LimitOffset()
 
-func (s *Sqlite) GetStudents() ([]types.Student, error) {
-	stmt, err := s.Db.Prepare("SELECT id,name,email,age FROM students")
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-	rows, err := stmt.Query()
+    stmt, err := s.Db.Prepare(`
+				SELECT * FROM students LIMIT ? OFFSET ? `)
+    if err != nil {
+        return nil, err
+    }
+    defer stmt.Close()
 
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+    rows, err := stmt.Query(limit, offset) // ✅ pass limit & offset
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
 
-	var students []types.Student
+    var students []types.Student
+    for rows.Next() {
+        var student types.Student
+        err := rows.Scan(&student.Id, &student.Name, &student.Email, &student.Age) // ✅ only selected columns
+        if err != nil {
+            return nil, err
+        }
+		// slog.Info("student name ",slog.String(student.Name.true))
+        students = append(students, student)
+    }
+	for _, s := range students {
+    slog.Info("Student row",
+        // slog.Int("id", s.Id),
+        slog.String("name", s.Name),
+        slog.String("email", s.Email),
+        slog.Int("age", s.Age),
+    )
+}
 
-	for rows.Next() {
-		var student types.Student
-		err := rows.Scan(&student.Id, &student.Name, &student.Email, &student.Age)
-		if err != nil {
-			return nil, err
-		}
-		students = append(students, student)
-	}
-	return students, nil
+
+    return students, nil
 }
 
 func (s *Sqlite) UpdateById(id int64, data types.Student) (types.Student, error) {
@@ -189,8 +203,8 @@ func (s *Sqlite) DeleteByID(id int64) error {
 	return nil
 }
 
-func(s *Sqlite) UpdateField(id int64,data types.StudentPatch )(types.Student,error)  {
-	stmt,err:=s.Db.Prepare(`
+func (s *Sqlite) UpdateField(id int64, data types.StudentPatch) (types.Student, error) {
+	stmt, err := s.Db.Prepare(`
 		UPDATE students
 		SET name=?,email=?,age=?
 		WHERE id=? 
@@ -198,22 +212,22 @@ func(s *Sqlite) UpdateField(id int64,data types.StudentPatch )(types.Student,err
 	if err != nil {
 		return types.Student{}, err
 	}
-	student,err:=s.GetStudentById(id)
+	student, err := s.GetStudentById(id)
 	if err != nil {
-		return types.Student{}, fmt.Errorf("no student found with %d",id)
+		return types.Student{}, fmt.Errorf("no student found with %d", id)
 	}
-	if data.Name!=nil{
-		student.Name=*data.Name
+	if data.Name != nil {
+		student.Name = *data.Name
 	}
-	if data.Email!=nil{
-		student.Email=*data.Email
+	if data.Email != nil {
+		student.Email = *data.Email
 	}
-	if data.Age!=nil{
-		student.Age=*data.Age
+	if data.Age != nil {
+		student.Age = *data.Age
 	}
-	_,err=stmt.Exec(student.Name,student.Email,student.Age,id)
+	_, err = stmt.Exec(student.Name, student.Email, student.Age, id)
 	if err != nil {
-		return types.Student{},fmt.Errorf("error updating the field")
+		return types.Student{}, fmt.Errorf("error updating the field")
 	}
-	return student,nil
+	return student, nil
 }

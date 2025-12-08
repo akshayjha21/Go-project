@@ -35,7 +35,12 @@ func main() {
 	router.HandleFunc("PUT /api/students/{id}", student.UpdateById(storage))
 	router.HandleFunc("DELETE /api/students/{id}", student.DeleteByID(storage))
 	//AdvanceApi
+	/*
+	🟦 PATCH (partial update)--> DONE
+	🟧 Pagination (limit/offset)-->DONE
+	*/
 	router.HandleFunc("PATCH /api/students/{id}",student.UpdateField(storage))
+	// router.HandleFunc("GET /api/students/",student.SearchStudent(storage))
 	// router.HandleFunc("GET /api/students",student.GetStudents(storage))
 	// router.HandleFunc("DELETE /api/students/{id}",student.DeleteById(storage))
 	//TODO - setup server

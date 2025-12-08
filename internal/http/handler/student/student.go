@@ -13,6 +13,7 @@ import (
 	"github.com/akshayjha21/Student-Api/internal/storage"
 	"github.com/akshayjha21/Student-Api/internal/types"
 	response "github.com/akshayjha21/Student-Api/internal/utils"
+	"github.com/akshayjha21/Student-Api/internal/utils/pagination"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -79,9 +80,35 @@ func GetById(storage storage.Storage) http.HandlerFunc {
 func GetList(storage storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slog.Info("getting all students")
-		students, err := storage.GetStudents()
+		pageStr := r.URL.Query().Get("page")
+		limitStr := r.URL.Query().Get("limit")
+		page, err := strconv.Atoi(pageStr)
 		if err != nil {
-			response.WriteJson(w, http.StatusInternalServerError, err)
+			response.WriteJson(w, http.StatusBadRequest, err)
+			return
+		}
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, err)
+			return
+		}
+		
+        // Create paginator
+        paginator := pagination.NewPaginate(limit,page)
+		
+        // Optional logging
+        lmt, offset := paginator.LimitOffset()
+        slog.Info("Pagination info",
+            slog.Int("page",paginator.Page),
+            slog.Int("limit", lmt),
+            slog.Int("offset", offset),
+        )
+		students, err := storage.GetStudents(paginator)
+		slog.Info("Fetched students",
+		slog.Int("count", len(students)),)
+
+		if err != nil {
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
 			return
 		}
 		response.WriteJson(w, http.StatusOK, students)
@@ -157,44 +184,44 @@ func DeleteByID(storage storage.Storage) http.HandlerFunc {
 	}
 }
 func UpdateField(storage storage.Storage) http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 
-        id := r.PathValue("id")
-        slog.Info("Updating student fields", slog.String("id", id))
+		id := r.PathValue("id")
+		slog.Info("Updating student fields", slog.String("id", id))
 
-        intid, err := strconv.ParseInt(id, 10, 64)
-        if err != nil {
-            response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
-            return
-        }
+		intid, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
 
-        var student types.StudentPatch
-		
-        err = json.NewDecoder(r.Body).Decode(&student)
-        if err == io.EOF {
-            response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("empty body")))
-            return
-        }
-        if err != nil {
-            response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
-            return
-        }
+		var student types.StudentPatch
 
-        // 🚫 DO NOT validate here — PATCH fields can be nil
-        // If you want validation, apply it only on non-nil fields
+		err = json.NewDecoder(r.Body).Decode(&student)
+		if err == io.EOF {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(fmt.Errorf("empty body")))
+			return
+		}
+		if err != nil {
+			response.WriteJson(w, http.StatusBadRequest, response.GeneralError(err))
+			return
+		}
 
-        updated, err := storage.UpdateField(intid, student)
+		// 🚫 DO NOT validate here — PATCH fields can be nil
+		// If you want validation, apply it only on non-nil fields
+
+		updated, err := storage.UpdateField(intid, student)
 		// slog.Info("updated field",slog.String(updated))
-        if err != nil {
-            if strings.Contains(err.Error(), "no student found") {
-                response.WriteJson(w, http.StatusNotFound, response.GeneralError(err))
-                return
-            }
+		if err != nil {
+			if strings.Contains(err.Error(), "no student found") {
+				response.WriteJson(w, http.StatusNotFound, response.GeneralError(err))
+				return
+			}
 
-            response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
-            return
-        }
+			response.WriteJson(w, http.StatusInternalServerError, response.GeneralError(err))
+			return
+		}
 
-        response.WriteJson(w, http.StatusOK, updated)
-    }
+		response.WriteJson(w, http.StatusOK, updated)
+	}
 }
