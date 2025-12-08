@@ -126,7 +126,7 @@ func (s *Sqlite) GetStudents(p *pagination.Paginate) ([]types.Student, error) {
     }
     defer stmt.Close()
 
-    rows, err := stmt.Query(limit, offset) // ✅ pass limit & offset
+    rows, err := stmt.Query(limit, offset)
     if err != nil {
         return nil, err
     }
@@ -135,7 +135,7 @@ func (s *Sqlite) GetStudents(p *pagination.Paginate) ([]types.Student, error) {
     var students []types.Student
     for rows.Next() {
         var student types.Student
-        err := rows.Scan(&student.Id, &student.Name, &student.Email, &student.Age) // ✅ only selected columns
+        err := rows.Scan(&student.Id, &student.Name, &student.Email, &student.Age)
         if err != nil {
             return nil, err
         }
